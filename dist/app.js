@@ -12,10 +12,10 @@ const searchIndex=new Map(cases.map(c=>[c.id,[c.title,c.author,c.model,c.model_f
 let saved;try{saved=new Set(JSON.parse(localStorage.getItem('visual-atlas-saved')||'[]'))}catch{saved=new Set()}
 let type='all',model='',category='',limit=24,filtered=[],current=null,detailList=[],gridScroll=0,returnFocus=null,ownedHistory=false;
 const positions=new Map(),visibleCards=new Set(),userPaused=new Set();
-const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches,saveData=navigator.connection?.saveData;
+let reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;const saveData=navigator.connection?.saveData;
 let layoutFrame=0,playFrame=0;
-function toast(text){$('#toast').textContent=text;$('#toast').style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').style.opacity=0,2300)}
-function setMenu(open){document.body.classList.toggle('menu-open',open);$('#menuToggle').setAttribute('aria-expanded',String(open));$('#menuToggle').setAttribute('aria-label',open?'关闭导航':'打开导航');$('#menuToggle').innerHTML=icon(open?'x':'menu')}
+function toast(text){$('#toast').innerHTML=icon('check')+'<span>'+esc(text)+'</span>';$('#toast').classList.add('visible');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('#toast').classList.remove('visible'),2300)}
+function setMenu(open){const wasOpen=document.body.classList.contains('menu-open');document.body.classList.toggle('menu-open',open);$('#menuToggle').setAttribute('aria-expanded',String(open));$('#menuToggle').setAttribute('aria-label',open?'关闭导航':'打开导航');$('#menuToggle').innerHTML=icon(open?'x':'menu');if(open&&!wasOpen)AtlasMotion.enter($('#sidebar'),{x:-8});}
 function syncNav(){
  $$('[data-type]').forEach(b=>{const on=b.dataset.type===type;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
  $$('[data-model]').forEach(b=>{const on=b.dataset.model===model;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});
@@ -23,10 +23,10 @@ function syncNav(){
  $('#savedCount').textContent=saved.size||'';$('#pageTitle').textContent=type==='saved'?'收藏的作品':model||'发现作品';
 }
 function persistSaved(){try{localStorage.setItem('visual-atlas-saved',JSON.stringify([...saved]))}catch{toast('收藏仅在本次浏览中保存')}}
-function save(id){saved.has(id)?saved.delete(id):saved.add(id);persistSaved();$$('[data-save]').filter(b=>b.dataset.save===id).forEach(b=>{b.classList.toggle('saved',saved.has(id));b.setAttribute('aria-pressed',String(saved.has(id)));b.setAttribute('aria-label',saved.has(id)?'取消收藏':'收藏作品')});syncNav();if(type==='saved'&&!current)render()}
+function save(id){saved.has(id)?saved.delete(id):saved.add(id);persistSaved();$$('[data-save]').filter(b=>b.dataset.save===id).forEach(b=>{b.classList.toggle('saved',saved.has(id));b.setAttribute('aria-pressed',String(saved.has(id)));b.setAttribute('aria-label',saved.has(id)?'取消收藏':'收藏作品')});syncNav();$$('[data-save]').filter(b=>b.dataset.save===id).forEach(b=>AtlasMotion.pulse(b));if(type==='saved'&&!current)render()}
 function card(c){
  const el=document.createElement('article');el.className='work';el.dataset.caseId=c.id;el.setAttribute('aria-label',c.title);
- const [w,h]=local(c)?dimensions(c):[4,3];el.dataset.ratio=String(w/h);
+ const [w,h]=local(c)?dimensions(c):[4,3];el.dataset.ratio=String(w/h);el.dataset.enter='true';
  el.innerHTML=`<div class="media-stage">${local(c)?`<img class="work-image" src="${esc(posterURL(c))}" alt="${esc(c.title)}" width="${w}" height="${h}" loading="lazy" decoding="async">`:`<div class="x-card"><span class="x-mark">𝕏</span><h2>${esc(c.title)}</h2><p>${esc(c.author)} · ${esc(c.model_family||c.model)}</p></div>`}<button class="open-work" data-open="${esc(c.id)}" aria-label="查看 ${esc(c.title)}">查看作品</button></div><a class="corner author-corner" href="${esc(authorURL(c))}" target="_blank" rel="noopener" title="${esc(c.author)}">${avatar(c)}</a><a class="corner round-action source-corner" href="${esc(safeURL(c.source_url))}" target="_blank" rel="noopener" aria-label="查看作品原始来源">${icon('arrow-up-right')}</a><button class="corner round-action save-corner ${saved.has(c.id)?'saved':''}" data-save="${esc(c.id)}" aria-label="${saved.has(c.id)?'取消收藏':'收藏作品'}" aria-pressed="${saved.has(c.id)}">${icon('bookmark')}</button>${local(c)?`<button class="corner round-action play-corner" data-play="${esc(c.id)}" aria-label="播放动画">${icon('play')}</button>`:''}`;
  return el;
 }
@@ -34,7 +34,7 @@ function layout(){cancelAnimationFrame(layoutFrame);layoutFrame=requestAnimation
  const grid=$('#grid'),width=grid.clientWidth,gap=12;
  const cols=innerWidth<=700?1:Math.max(1,Math.min(6,Math.floor((width+gap)/280)));
  const cw=(width-gap*(cols-1))/cols,heights=Array(cols).fill(0);
- for(const el of grid.children){const col=heights.indexOf(Math.min(...heights)),height=cw/Number(el.dataset.ratio);el.style.width=cw+'px';el.style.height=height+'px';el.style.transform=`translate(${col*(cw+gap)}px,${heights[col]}px)`;heights[col]+=height+gap}
+ for(const el of grid.children){const col=heights.indexOf(Math.min(...heights)),height=cw/Number(el.dataset.ratio);el.style.width=cw+'px';el.style.height=height+'px';el.style.transform=`translate(${col*(cw+gap)}px,${heights[col]}px)`;heights[col]+=height+gap;if(el.dataset.enter){delete el.dataset.enter;AtlasMotion.enter(el.querySelector('.media-stage'),{y:6,duration:220})}}
  grid.style.height=Math.max(0,Math.max(...heights)-gap)+'px';
 })}
 function teardownCard(el){nearObserver.unobserve(el);visibleObserver.unobserve(el);visibleCards.delete(el);const v=el.querySelector('video');if(v){positions.set(el.dataset.caseId,v.currentTime);v.pause();v.removeAttribute('src');v.load()}}
@@ -47,7 +47,7 @@ function render(reset=true){
  const from=grid.children.length;
  for(const c of filtered.slice(from,limit)){const el=card(c);grid.append(el);if(local(c)){nearObserver.observe(el);visibleObserver.observe(el)}}
  $('#empty').hidden=filtered.length>0;$('#count').textContent=`${filtered.length} 件作品`;$('#loadMore').hidden=limit>=filtered.length;
- syncNav();layout();setMenu(false);
+ syncNav();layout();setMenu(false);$('#clearSearch').hidden=!q;
 }
 function attachVideo(el){
  let v=el.querySelector('video');if(v)return v;
@@ -84,27 +84,34 @@ function detailMedia(c){return local(c)?`<video id="detailVideo" src="${esc(vide
 function neighborHTML(c,step){return c&&local(c)?`<button class="neighbor ${step<0?'prev':'next'}" data-step="${step}" aria-label="${step<0?'上一件':'下一件'}作品"><img src="${esc(posterURL(c))}" alt="${esc(c.title)}" loading="lazy"></button>`:''}
 function openDetail(id,{historyMode='push'}={}){
  const c=byID.get(id);if(!c)return;
- const first=!current;if(first){gridScroll=scrollY;returnFocus=document.activeElement;detailList=filtered.some(x=>x.id===id)?filtered.slice():cases.slice()}
+ AtlasMotion.cancelShared();const sourceCard=[...$('#grid').children].find(el=>el.dataset.caseId===id);const origin=sourceCard?.getBoundingClientRect();const first=!current;if(first){gridScroll=scrollY;returnFocus=document.activeElement;detailList=filtered.some(x=>x.id===id)?filtered.slice():cases.slice()}
  pauseGrid();rememberDetail();current=id;setMenu(false);document.body.classList.add('detail-open');$('#page').inert=true;$('#detail').hidden=false;
  const index=detailList.findIndex(x=>x.id===id),nav=navHTML(c,index),prev=detailList[index-1],next=detailList[index+1];
  $('#detailBody').innerHTML=`<div class="mobile-detail-bar">${nav}</div><div class="detail-layout"><section class="detail-info"><div class="detail-nav">${nav}</div><div class="detail-author">${avatar(c)}<h2 class="detail-title">${esc(c.title)}</h2><a class="author-name" href="${esc(authorURL(c))}" target="_blank" rel="noopener">${esc(c.author)} ↗</a></div><p class="description">${esc(c.description)}</p><dl class="metadata"><div class="meta-row"><dt>模型</dt><dd>${esc(c.model)}</dd></div><div class="meta-row"><dt>分类</dt><dd>${esc(c.category)}</dd></div><div class="meta-row"><dt>来源</dt><dd><a href="${esc(safeURL(c.source_url))}" target="_blank" rel="noopener">${c.source_kind==='github'?'GitHub 原作':'X 原帖'} ↗</a></dd></div></dl><section class="prompt-section"><h3>提示词${c.prompt&&!c.prompt_license?' · 摘录':''}</h3>${c.prompt?`<pre>${esc(c.prompt)}</pre><button class="copy-button" id="copyPrompt">${icon('copy')}${c.prompt_license?'复制提示词':'复制摘录'}</button>`:`<p class="description">${esc(c.prompt_status||'未找到作者公开的提示词。')}</p>`}${c.prompt_reply_url?`<p><a class="copy-button" href="${esc(safeURL(c.prompt_reply_url))}" target="_blank" rel="noopener">作者提示词原文 ↗</a></p>`:''}</section><details><summary>来源与使用说明</summary><p>${esc(c.attribution)}</p><p>${esc(c.license)}</p><p>${esc(c.prompt_status||'')}</p><p>核查日期：${esc(c.checked_at)}。${local(c)?'GIF 转为 MP4 并提取封面以优化加载，未重绘作品。模型由源仓库声明，本站未独立复现。':'通过 X 官方嵌入展示；本站未重新生成或替换作品。'}</p></details></section><section class="detail-media" aria-label="作品媒体"><div class="media-rail">${neighborHTML(prev,-1)}<div class="hero-media">${detailMedia(c)}</div>${neighborHTML(next,1)}</div></section></div>`;
  const v=$('#detailVideo');if(v){v.addEventListener('loadedmetadata',()=>{const t=positions.get(id)||0;if(Number.isFinite(v.duration))v.currentTime=Math.min(t,Math.max(0,v.duration-.02));if(!reduceMotion)v.play().catch(()=>{})},{once:true})}
  const load=$('#loadTweet');if(load)load.onclick=()=>loadTweet(c,load.closest('.detail-tweet'));
- const copy=$('#copyPrompt');if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(c.prompt);toast('已复制提示词')}catch{toast('复制失败，请选择文字复制')}};
+ const copy=$('#copyPrompt');if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(c.prompt);toast('已复制提示词');copy.innerHTML=icon('check')+'已复制';copy.classList.add('copied');AtlasMotion.pulse(copy)}catch{toast('复制失败，请选择文字复制')}};
  if(historyMode==='push'){history.pushState({...history.state,atlasDetail:true},'',urlFor(id));ownedHistory=true}else if(historyMode==='replace')history.replaceState(history.state,'',urlFor(id));
- $('#detail').scrollTop=0;$$('#detail [data-close]').find(el=>el.offsetParent!==null)?.focus({preventScroll:true});
+ $('#detail').scrollTop=0;AtlasMotion.enter($('.detail-info'),{y:6,duration:220});if(first&&origin&&local(c))AtlasMotion.shared(posterURL(c),origin,$('#detailVideo'));else AtlasMotion.enter($('.hero-media'),{x:AtlasMotion.direction*14,duration:180});$$('#detail [data-close]').find(el=>el.offsetParent!==null)?.focus({preventScroll:true});
 }
 function urlFor(id){return location.pathname+location.search+(id?'#work='+encodeURIComponent(id):'')}
 function idFromURL(){return new URLSearchParams(location.hash.slice(1)).get('work')}
-function closeDetail({navigate=true}={}){if($('#detail').hidden)return;rememberDetail();const returnedID=current;const gridVideo=$$('#grid video').find(v=>v.dataset.caseId===returnedID);if(gridVideo&&positions.has(returnedID)){try{gridVideo.currentTime=positions.get(returnedID)}catch{}}current=null;$('#detail').hidden=true;$('#detailBody').replaceChildren();document.body.classList.remove('detail-open');$('#page').inert=false;if(navigate){if(ownedHistory){ownedHistory=false;history.back()}else history.replaceState(history.state,'',urlFor(null))}requestAnimationFrame(()=>{if(!$('#detail').hidden)return;scrollTo(0,gridScroll);if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true});schedulePlayback()});if(type==='saved')render()}
-function moveDetail(step){const i=detailList.findIndex(c=>c.id===current),c=detailList[i+step];if(c)openDetail(c.id,{historyMode:'replace'})}
+function closeDetail({navigate=true}={}){if($('#detail').hidden)return;AtlasMotion.cancelShared();const closing=current&&byID.get(current),from=$('#detailVideo')?.getBoundingClientRect();rememberDetail();const returnedID=current;const gridVideo=$$('#grid video').find(v=>v.dataset.caseId===returnedID);if(gridVideo&&positions.has(returnedID)){try{gridVideo.currentTime=positions.get(returnedID)}catch{}}current=null;$('#detail').hidden=true;$('#detailBody').replaceChildren();document.body.classList.remove('detail-open');$('#page').inert=false;if(closing&&from&&local(closing)){const target=[...$('#grid').children].find(el=>el.dataset.caseId===closing.id);AtlasMotion.shared(posterURL(closing),from,target,220)}if(navigate){if(ownedHistory){ownedHistory=false;history.back()}else history.replaceState(history.state,'',urlFor(null))}requestAnimationFrame(()=>{if(!$('#detail').hidden)return;scrollTo(0,gridScroll);if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true});schedulePlayback()});if(type==='saved')render()}
+function moveDetail(step){const i=detailList.findIndex(c=>c.id===current),c=detailList[i+step];if(c){AtlasMotion.direction=step;openDetail(c.id,{historyMode:'replace'});AtlasMotion.direction=1}}
 function syncHistory(){const id=idFromURL();if(id&&byID.has(id)){if(current!==id)openDetail(id,{historyMode:'none'})}else {ownedHistory=false;closeDetail({navigate:false})}}
 $('#detail').onclick=e=>{const close=e.target.closest('[data-close]'),step=e.target.closest('[data-step]'),saveButton=e.target.closest('[data-save]');if(close)closeDetail();else if(step)moveDetail(Number(step.dataset.step));else if(saveButton)save(saveButton.dataset.save)};
 $('#grid').onclick=e=>{const open=e.target.closest('[data-open]'),saveButton=e.target.closest('[data-save]'),play=e.target.closest('[data-play]');if(open)openDetail(open.dataset.open);else if(saveButton)save(saveButton.dataset.save);else if(play)togglePlay(play.dataset.play)};
 $('#sidebar').onclick=e=>{const b=e.target.closest('[data-type],[data-model]');if(!b)return;if(current)closeDetail();if(b.dataset.type){type=b.dataset.type;model=''}else model=model===b.dataset.model?'':b.dataset.model;render()};
 $('#categories').onclick=e=>{const b=e.target.closest('[data-category]');if(b){category=b.dataset.category;render()}};
+$('#clearSearch').onclick=()=>{$('#search').value='';render();$('#search').focus()};
 let searchTimer;$('#search').oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>render(),160)};
-$('#promptOnly').onchange=()=>render();$('#sort').onchange=()=>render();$('#loadMore').onclick=()=>{limit+=24;render(false)};
+$('#promptOnly').onchange=()=>render();
+function closeSort(){$('#sortMenu').hidden=true;$('#sortTrigger').setAttribute('aria-expanded','false')}
+$('#sortTrigger').onclick=()=>{const open=$('#sortMenu').hidden;$('#sortMenu').hidden=!open;$('#sortTrigger').setAttribute('aria-expanded',String(open));if(open)AtlasMotion.enter($('#sortMenu'),{y:-4,duration:170})};
+$('#sortMenu').onclick=e=>{const b=e.target.closest('[data-sort]');if(!b)return;$('#sort').value=b.dataset.sort;$$('[data-sort]').forEach(el=>el.setAttribute('aria-pressed',String(el===b)));$('#sortTrigger').innerHTML=(b.dataset.sort==='curated'?'编辑排序':'最近核实')+' <span aria-hidden="true">⌄</span>';closeSort();render();$('#sortTrigger').focus()};
+document.addEventListener('click',e=>{if(!e.target.closest('.sort'))closeSort()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sortMenu').hidden){e.stopImmediatePropagation();closeSort();$('#sortTrigger').focus()}},true);
+$('#sort').onchange=()=>render();$('#loadMore').onclick=()=>{limit+=24;render(false)};
 $('#reset').onclick=()=>{type='all';model='';category='';$('#search').value='';$('#promptOnly').checked=false;render()};
 $('#menuToggle').onclick=()=>{setMenu(!document.body.classList.contains('menu-open'));schedulePlayback()};
 $('#repo').href=safeURL(window.ATLAS.repository)||'https://github.com/biletian/ai-visual-atlas';$('#totalCount').textContent=cases.length;
@@ -116,4 +123,5 @@ window.addEventListener('resize',layout);new ResizeObserver(layout).observe($('#
 window.addEventListener('popstate',syncHistory);window.addEventListener('hashchange',syncHistory);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){pauseGrid();$('#detailVideo')?.pause()}else schedulePlayback()});
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();if(current)closeDetail();$('#search').focus()}if(e.key==='Escape'){setMenu(false);closeDetail()}if(!$('#detail').hidden&&e.key==='Tab'){const focusables=$$('#detail button:not(:disabled),#detail a[href],#detail video[controls],#detail summary').filter(el=>el.offsetParent!==null);if(!focusables.length)return;const first=focusables[0],last=focusables.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}if(current&&!['INPUT','TEXTAREA','SELECT','VIDEO'].includes(document.activeElement.tagName)){if(e.key==='ArrowRight')moveDetail(1);if(e.key==='ArrowLeft')moveDetail(-1)}});
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',e=>{reduceMotion=e.matches;if(reduceMotion){pauseGrid();$('#detailVideo')?.pause()}else schedulePlayback()});
 render();syncHistory();
