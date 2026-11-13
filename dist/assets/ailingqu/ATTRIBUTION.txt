@@ -1,0 +1,3 @@
+CC BY 4.0：https://creativecommons.org/licenses/by/4.0/ 。作者 ailingqu / awesome-ai-gif-prompts；GIF 未修改，提示词按原仓库主体与 loopSuffix 拼接，标题使用原仓库中文标题。
+Source https://github.com/ailingqu/awesome-ai-gif-prompts
+Checked 2026-11-13
