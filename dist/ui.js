@@ -6,4 +6,3 @@ window.AtlasUI={
  navIcon(v){return ({'ChatGPT Images 2.6':'sparkles','多模型工作流':'workflow','多模型对比':'git-compare-arrows','表情包与贴纸':'smile','快闪与品牌动效':'clapperboard','氛围循环动画':'moon','像素风与界面动效':'monitor','动图与动画':'film','游戏美术':'gamepad-2','海报设计':'palette','模型对比':'git-compare-arrows','视频工作流':'workflow','地图设计':'map','像素动画':'grid-2x2','摄影对比':'camera'})[v]||'layers'},
  syncFilters(){document.querySelectorAll('[data-model]').forEach(b=>{const on=b.dataset.model===document.querySelector('#model').value;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))});document.querySelectorAll('[data-category]').forEach(b=>{const on=b.dataset.category===document.querySelector('#category').value;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',String(on))})}
 };
-document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=window.AtlasUI.icon(el.dataset.icon));
