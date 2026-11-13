@@ -1,25 +1,33 @@
-# Visual Atlas · AI 影像灵感库
+# Atlas · AI 影像灵感库
 
-可扩展的图像 / 视频生成案例索引。原生 HTML、CSS、JavaScript，无构建依赖。
+公开网站：https://biletian.github.io/ai-visual-atlas/
 
-## 当前资料状态
-资料包含 18 条来源线索。当前已核实的原帖通过 X 官方嵌入显示图片/动图/视频；未核实项不展示到前台。提示词为短摘录或作者原帖链接，不臆造缺失内容。
+原生 HTML / CSS / JavaScript，无构建依赖。当前公开资料为 85 条：72 个作者声明 GPT Image 2.6 的 CC BY 4.0 GIF 案例，以及 13 条经原帖核查的 X 案例。多模型对比和工作流明确分别标注，不把推荐模型当原始模型。
 
-## 运行
-用任意静态服务器托管 `dist/`，例如 `python -m http.server 8080 --directory dist`。
+## 运行与检查
 
-## 功能
-模型 / 媒介 / 场景筛选、全文检索、提示词过滤、详情弹窗、复制提示词、浏览器本地收藏、响应式布局。
+```sh
+python -m http.server 8080 --directory dist
+node --check dist/app.js
+node --check dist/ui.js
+```
 
-## 添加案例
-编辑 `dist/cases.json` 后运行 `python scripts/sync-data.py`。字段保留作者、模型、原帖、核验状态、提示词状态、素材授权。视频案例使用 `type: "video"`，GIF 归为图像。只有核实后才设 `publish_ready: true`。图片必须同时具备 `image_url` 和 `media_authorized: true` 才展示。默认仅链接原帖，不搬运作者作品。
+直接在浏览器打开本机 8080 端口。上线由 `.github/workflows/pages.yml`（具体文件名以目录为准）的 GitHub Pages workflow 在 main 更新后执行。
 
-## 权利与隐私
-作品和提示词归原作者；本库不授予第三方作品使用权。收藏仅保存在当前浏览器，不上传。网页可加载 Google Fonts；不配置统计脚本，不使用 API 密钥。
+## 交互
 
-## 公网访问
-GitHub Pages: https://biletian.github.io/ai-visual-atlas/ 。无需 GitHub 或 ChatGPT 账户。
+- JS 最短列瀑布流，图片先锁定比例；增量加载，不重建已有媒体。
+- 搜索、单选主题、模型导航、收藏和提示词过滤。
+- 桌面窄信息栏＋大媒体详情，手机上图下文；深链、前后作品、返回位置恢复。
+- 本站 GIF 转 MP4 并提取 WebP 封面，近视口预载、可见媒体有限并发播放，切后台暂停，尊重 reduced-motion 和 save-data。
+- X 原作使用官方嵌入。详情始终提供原帖入口，加载失败可重试。
 
-## UI 与媒体实现
-已实际调用官方 `@heroui/react-mcp@1.1.4` 的 `list_components`、`get_theme_variables`、`get_component_docs`、`get_component_source_styles`。本项目采用 MCP 文档允许的 CSS-only 路径，集成 `@heroui/styles@3.2.7` Card、Button、Chip 样式；原生控件和 dialog 保留键盘行为。第三方授权文件见 HEROUI-LICENSE。
-已核实案例以 X 官方 widgets 嵌入显示媒体，未核实线索保留在数据中、不显示为完成案例。原帖内容属于作者，本站不承诺生成结果或商用权限。第三方 X 嵌入会向 X 请求资源（dnt=true），可能受地区网络限制。
+## 数据与许可
+
+编辑 `dist/cases.json` 后运行 `python scripts/sync-data.py` 更新 data.js。保留作者、真实模型、来源、核验时间与素材许可。只有核验后设 `publish_ready: true`。
+
+CC BY 4.0 媒体保留署名、来源、许可及转码说明。原始 GIF 继续保留；转码不改变作品内容。X 作品与提示词没有自动获得转载授权，仅官方嵌入、链接或允许的摘录。未公开的提示词不臆造。
+
+作者 ailingqu 的头像来自其 GitHub；没有确认头像的作者使用首字母占位。图标许可见 LUCIDE-LICENSE。历史 HeroUI 集成许可保留于 HEROUI-LICENSE；本版布局为项目自身原生实现。
+
+收藏仅保存在当前浏览器，不上传；第三方媒体请求可能受网络限制。没有追踪脚本或 API 密钥。
